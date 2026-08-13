@@ -8,7 +8,7 @@ public record ProductDTO(
         String description,
         BigDecimal price,
         Boolean isAvailable,
-        Long CategoryId,
+        Long categoryId,
         List<Long> ingredientIds
 ) {
 }
