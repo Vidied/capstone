@@ -50,11 +50,16 @@ public class ProductService {
             ingredients = ingredientRepository.findAllById(body.ingredientIds());
         }
 
+        boolean hasUnavailableIngredient = ingredients.stream()
+                .anyMatch(ingredient -> Boolean.FALSE.equals(ingredient.getIsAvailable()));
+
+        boolean isAvailable = !hasUnavailableIngredient && (body.isAvailable() != null ? body.isAvailable() : true);
+
         Product product = new Product(
                 body.name(),
                 body.description(),
                 body.price(),
-                body.isAvailable() != null ? body.isAvailable() : true,
+                isAvailable,
                 category,
                 ingredients
         );
@@ -71,10 +76,16 @@ public class ProductService {
             ingredients = ingredientRepository.findAllById(body.ingredientIds());
         }
 
+        boolean hasUnavailableIngredient = ingredients.stream()
+                .anyMatch(ingredient -> Boolean.FALSE.equals(ingredient.getIsAvailable()));
+
         found.setName(body.name());
         found.setDescription(body.description());
         found.setPrice(body.price());
-        if(body.isAvailable() != null){
+
+        if(hasUnavailableIngredient){
+            found.setIsAvailable(false);
+        }else if(body.isAvailable() != null){
             found.setIsAvailable(body.isAvailable());
         };
         found.setCategory(category);

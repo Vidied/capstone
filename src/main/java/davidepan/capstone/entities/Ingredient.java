@@ -16,6 +16,10 @@ public class Ingredient {
     private Long id;
 
     @Setter
+    @Column(name = "is_available", nullable = false)
+    private Boolean isAvailable = true;
+
+    @Setter
     @Column(nullable = false)
     private String name;
 
