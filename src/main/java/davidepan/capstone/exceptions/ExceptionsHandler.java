@@ -21,6 +21,15 @@ public class ExceptionsHandler {
         return payload;
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, Object> handleUnauthorized(UnauthorizedException ex) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("message", ex.getMessage());
+        payload.put("timestamp", LocalDateTime.now());
+        return payload;
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, Object> handleGeneric(Exception ex) {
