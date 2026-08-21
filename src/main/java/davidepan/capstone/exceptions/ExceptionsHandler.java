@@ -1,5 +1,6 @@
 package davidepan.capstone.exceptions;
 
+import davidepan.capstone.payloads.ErrorResponseDTO;
 import davidepan.capstone.payloads.ErrorsResponseDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,14 +18,20 @@ public class ExceptionsHandler {
 
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorsResponseDTO handleNotFound(NotFoundException ex) {
-return new ErrorsResponseDTO(ex.getMessage(), null, LocalDateTime.now());
+    public ErrorResponseDTO handleNotFound(NotFoundException ex) {
+return new ErrorResponseDTO(ex.getMessage(), LocalDateTime.now());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorsResponseDTO handleUnauthorized(UnauthorizedException ex) {
-        return new ErrorsResponseDTO(ex.getMessage(), null, LocalDateTime.now());
+    public ErrorResponseDTO handleUnauthorized(UnauthorizedException ex) {
+        return new ErrorResponseDTO(ex.getMessage(), LocalDateTime.now());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponseDTO handleBadRequest (BadRequestException ex){
+        return new ErrorResponseDTO(ex.getMessage(), LocalDateTime.now());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

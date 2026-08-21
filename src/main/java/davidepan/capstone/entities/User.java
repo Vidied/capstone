@@ -12,28 +12,29 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @NoArgsConstructor
+@Getter
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Getter
+
     private Long id;
 
-    @Getter
+
     @Setter
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Getter
+
     @Setter
     @Column(nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
-    @Getter
+
     @Setter
     private String name;
-    @Getter
+
     @Setter
     private String surname;
 
@@ -43,7 +44,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    @Getter
+
     @Setter
     private Set<Role> roles = new HashSet<>();
 

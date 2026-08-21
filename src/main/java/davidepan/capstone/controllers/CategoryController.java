@@ -2,9 +2,11 @@ package davidepan.capstone.controllers;
 
 import davidepan.capstone.entities.Category;
 import davidepan.capstone.payloads.CategoryDTO;
+import davidepan.capstone.payloads.CategoryResponseDTO;
 import davidepan.capstone.services.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,24 +19,32 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public List<Category> getAll(){
-        return categoryService.findAll();
+    public List<CategoryResponseDTO> getAll(){
+        return categoryService.findAll()
+                .stream()
+                .map(categoryService::convertToResponseDTO)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Category getById(@PathVariable Long id){
-        return categoryService.findById(id);
+    public CategoryResponseDTO getById(@PathVariable Long id){
+        Category category = categoryService.findById(id);
+        return categoryService.convertToResponseDTO(category);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Category create(@RequestBody CategoryDTO body){
-        return categoryService.save(body);
+    public CategoryResponseDTO create(@RequestBody @Validated CategoryDTO body){
+        Category category = categoryService.save(body);
+
+        return categoryService.convertToResponseDTO(category);
     }
 
     @PutMapping("/{id}")
-    public Category update(@PathVariable Long id, @RequestBody CategoryDTO body){
-        return categoryService.update(id, body);
+    public CategoryResponseDTO update(@PathVariable Long id, @RequestBody @Validated CategoryDTO body){
+        Category category = categoryService.update(id, body);
+
+        return categoryService.convertToResponseDTO(category);
     }
 
     @DeleteMapping("/{id}")
