@@ -1,6 +1,7 @@
 package davidepan.capstone.entities;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,30 +13,27 @@ import java.util.List;
 @NoArgsConstructor
 @Table(name = "products")
 @Entity
+@Setter
 @Getter
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter(AccessLevel.NONE)
     private Long id;
 
-    @Setter
     @Column(nullable = false)
     private String name;
 
     //Per un'eventuale implementazione di una descrizione
-    @Setter
     private String description;
 
-    @Setter
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Setter
     @Column(nullable = false, name = "is_available")
     private Boolean isAvailable = true;
 
-    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
