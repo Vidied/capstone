@@ -4,6 +4,7 @@ import davidepan.capstone.entities.Ingredient;
 import davidepan.capstone.entities.Product;
 import davidepan.capstone.exceptions.NotFoundException;
 import davidepan.capstone.payloads.IngredientDTO;
+import davidepan.capstone.payloads.IngredientUpdateDTO;
 import davidepan.capstone.repositories.IngredientRepository;
 import davidepan.capstone.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,24 +40,30 @@ public class IngredientService {
         return ingredientRepository.save(ingredient);
     }
 
-    public Ingredient update(Long id, IngredientDTO body){
+    public Ingredient update(Long id, IngredientUpdateDTO body){
         Ingredient found = this.findById(id);
-        found.setName(body.name());
 
-        if(body.isAvailable() != null){
-            found.setIsAvailable(body.isAvailable());
-
-            if(!body.isAvailable()){
-                List<Product> associatedProducts = productRepository.findByIngredientsId(id);
-                for(Product product : associatedProducts){
-                    product.setIsAvailable(false);
-                }
-                productRepository.saveAll(associatedProducts);
-
-            }
+        if(body.name() != null && !body.name().isBlank()){
+            found.setName(body.name());
         }
 
-        return ingredientRepository.save(found);
+        if(body.isAvailable() != null) {
+            found.setIsAvailable(body.isAvailable());
+        }
+
+        Ingredient savedIngredient = ingredientRepository.save(found);
+
+        List<Product> associatedProducts = productRepository.findByIngredientsId(id);
+
+        for (Product product : associatedProducts) {
+            boolean hasUnavailableIngredient = product.getIngredients().stream()
+                    .anyMatch(ingredient -> Boolean.FALSE.equals(ingredient.getIsAvailable()));
+            product.setIsAvailable(!hasUnavailableIngredient);
+        }
+
+        productRepository.saveAll(associatedProducts);
+
+        return savedIngredient;
     }
 
     public void delete(Long id){

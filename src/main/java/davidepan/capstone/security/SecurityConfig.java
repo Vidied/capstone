@@ -32,9 +32,9 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/products/**", "/categories/**").permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**").hasAnyAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/products/**", "/categories/**", "/ingredients/**").hasAnyAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/products/**", "/categories/**", "/ingredients/**").hasAnyAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**", "/ingredients/**").hasAnyAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 );
         http.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
