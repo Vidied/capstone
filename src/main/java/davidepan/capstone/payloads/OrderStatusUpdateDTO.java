@@ -6,6 +6,6 @@ import jakarta.validation.constraints.NotNull;
 public record OrderStatusUpdateDTO(
 
         @NotNull(message = "Lo stato dell'ordine è obbligatorio")
-        OrderStatus status
+        OrderStatus orderStatus
 ) {
 }

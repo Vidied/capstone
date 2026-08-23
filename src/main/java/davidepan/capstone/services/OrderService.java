@@ -67,6 +67,7 @@ public class OrderService {
 
         found.setTableNumber(body.tableNumber());
         found.setCoversCount(body.coverCount());
+        found.setOrderStatus(body.orderStatus());
         found.setNotes(body.notes());
 
         found.getItems().clear();
@@ -78,7 +79,7 @@ public class OrderService {
 
     public Order updateStatus(Long id, OrderStatusUpdateDTO body){
         Order found = this.findById(id);
-        found.setOrderStatus(body.status());
+        found.setOrderStatus(body.orderStatus());
         return orderRepository.save(found);
     }
 
