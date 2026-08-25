@@ -43,19 +43,19 @@ public class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(nullable = false)
-    private Integer coversCount;
+    private Integer coverCount;
 
     @Column(nullable = false)
     private BigDecimal coverPrice;
 
-    public Order(Integer tableNumber, OrderStatus orderStatus, BigDecimal totalAmount, String notes, LocalDateTime createdAt, List<OrderItem> items, Integer coversCount, BigDecimal coverPrice) {
+    public Order(Integer tableNumber, OrderStatus orderStatus, BigDecimal totalAmount, String notes, LocalDateTime createdAt, List<OrderItem> items, Integer coverCount, BigDecimal coverPrice) {
         this.tableNumber = tableNumber;
         this.orderStatus = orderStatus;
         this.totalAmount = totalAmount;
         this.notes = notes;
         this.createdAt = createdAt;
         this.items = items;
-        this.coversCount = coversCount;
+        this.coverCount = coverCount;
         this.coverPrice = coverPrice;
     }
 }

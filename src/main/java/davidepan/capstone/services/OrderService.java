@@ -50,7 +50,7 @@ public class OrderService {
         Order newOrder = new Order();
 
         newOrder.setTableNumber(body.tableNumber());
-        newOrder.setCoversCount(body.coverCount());
+        newOrder.setCoverCount(body.coverCount());
         newOrder.setCoverPrice(defaultCoverPrice);
         newOrder.setNotes(body.notes());
         newOrder.setOrderStatus(OrderStatus.PENDING);
@@ -66,7 +66,7 @@ public class OrderService {
         Order found = this.findById(id);
 
         found.setTableNumber(body.tableNumber());
-        found.setCoversCount(body.coverCount());
+        found.setCoverCount(body.coverCount());
         found.setOrderStatus(body.orderStatus());
         found.setNotes(body.notes());
 
@@ -112,9 +112,9 @@ public class OrderService {
 
         order.getItems().addAll(items);
 
-        BigDecimal totalCoversAmount = defaultCoverPrice.multiply(BigDecimal.valueOf(coverCount));
+        BigDecimal totalCoverAmount = defaultCoverPrice.multiply(BigDecimal.valueOf(coverCount));
 
-        order.setTotalAmount(productsTotal.add(totalCoversAmount));
+        order.setTotalAmount(productsTotal.add(totalCoverAmount));
 
     }
 }

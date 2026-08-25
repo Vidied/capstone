@@ -9,6 +9,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -31,8 +33,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
-            .formLogin(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
@@ -43,7 +45,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**", "/ingredients/**", "/orders/**").hasAnyAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/products/**", "/categories/**", "/ingredients/**", "/orders/**").hasAnyAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
-                );
+                )
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable);
         http.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -62,8 +66,14 @@ public class SecurityConfig {
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        
+
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean public UserDetailsService userDetailsService(){
+        return username -> {
+            throw new UsernameNotFoundException("Autenticazione gestita tramite filtro JWT");
+        };
     }
 }
