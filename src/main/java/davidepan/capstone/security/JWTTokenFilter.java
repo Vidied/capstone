@@ -33,26 +33,32 @@ public class JWTTokenFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Inserisci il token nell'header Authorization");
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        String accessToken = authHeader.substring(7);
+        try {
+            String accessToken = authHeader.substring(7);
 
-        jwtTools.verifyToken(accessToken);
+            jwtTools.verifyToken(accessToken);
 
-        String id = jwtTools.extractIdFromToken(accessToken);
+            String id = jwtTools.extractIdFromToken(accessToken);
 
-        User currentUser = userService.findById(Long.parseLong(id));
+            User currentUser = userService.findById(Long.parseLong(id));
 
-        var authorities = currentUser.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
-                .toList();
+            var authorities = currentUser.getRoles().stream()
+                    .map(role -> new SimpleGrantedAuthority(role.getName()))
+                    .toList();
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(currentUser, null, authorities);
+            Authentication authentication = new UsernamePasswordAuthenticationToken(currentUser, null, authorities);
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (UnauthorizedException ex) {
+            SecurityContextHolder.clearContext();
+        }
 
         filterChain.doFilter(request, response);
+
 
     }
 
@@ -63,7 +69,9 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
         return new AntPathMatcher().match("/auth/**", path) || (method.equalsIgnoreCase("GET") && (
                 new AntPathMatcher().match("/products/**", path) ||
-                new AntPathMatcher().match("/categoriesbb/**", path)
+                new AntPathMatcher().match("/categories/**", path)||
+                new AntPathMatcher().match("/products", path) ||
+                new AntPathMatcher().match("/categories", path)
                 ));
     }
 
