@@ -9,6 +9,7 @@ public record ProductResponseDTO (
         String description,
         BigDecimal price,
         Boolean isAvailable,
+        Long categoryId,
         String categoryName,
         List<String> ingredientNames
 ){

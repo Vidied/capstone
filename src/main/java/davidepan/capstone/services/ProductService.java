@@ -118,6 +118,7 @@ public class ProductService {
                 product.getDescription(),
                 product.getPrice(),
                 product.getIsAvailable(),
+                product.getCategory().getId(),
                 product.getCategory() != null ? product.getCategory().getName() : null,
                 product.getIngredients() != null ? product.getIngredients().stream().map(Ingredient::getName).toList() : List.of()
         );
