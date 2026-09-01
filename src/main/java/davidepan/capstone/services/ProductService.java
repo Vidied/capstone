@@ -77,7 +77,7 @@ public class ProductService {
     public Product update(Long id, ProductDTO body){
         Product found = this.findById(id);
         Category category = categoryRepository.findById(body.categoryId())
-                .orElseThrow(()-> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
 
         List<Ingredient> ingredients = new ArrayList<>();
         if (body.ingredientIds() != null && !body.ingredientIds().isEmpty()){
@@ -93,17 +93,25 @@ public class ProductService {
         found.setName(body.name());
         found.setDescription(body.description());
         found.setPrice(body.price());
-
-        if(hasUnavailableIngredient){
-            found.setIsAvailable(false);
-        }else if(body.isAvailable() != null){
-            found.setIsAvailable(body.isAvailable());
-        };
         found.setCategory(category);
+
         found.getIngredients().clear();
         found.getIngredients().addAll(ingredients);
 
+        // Se almeno un ingrediente non è disponibile il prodotto rimane non disponibile
+        if (hasUnavailableIngredient) {
+            found.setIsAvailable(false);
+        } else {
+            found.setIsAvailable(body.isAvailable() != null ? body.isAvailable() : true);
+        }
+
         return productRepository.save(found);
+    }
+
+    public Product toggleAvailability(Long id) {
+        Product product = this.findById(id);
+        product.setIsAvailable(!product.getIsAvailable());
+        return productRepository.save(product);
     }
 
     public void delete(Long id){
@@ -111,16 +119,20 @@ public class ProductService {
         productRepository.delete(found);
     }
 
-    public ProductResponseDTO convertToResponseDto(Product product){
+    public ProductResponseDTO convertToResponseDto(Product product) {
+        List<String> ingredientNames = product.getIngredients() != null
+                ? product.getIngredients().stream().map(Ingredient::getName).toList()
+                : List.of();
+
         return new ProductResponseDTO(
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
                 product.getIsAvailable(),
-                product.getCategory().getId(),
+                product.getCategory() != null ? product.getCategory().getId() : null,
                 product.getCategory() != null ? product.getCategory().getName() : null,
-                product.getIngredients() != null ? product.getIngredients().stream().map(Ingredient::getName).toList() : List.of()
+                ingredientNames
         );
     }
 }

@@ -40,6 +40,11 @@ public class ProductController {
                 .toList();
     }
 
+    @PatchMapping("/{id}/availability")
+    public ProductResponseDTO toggleAvailability(@PathVariable Long id) {
+        Product updated = productService.toggleAvailability(id);
+        return productService.convertToResponseDto(updated);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
