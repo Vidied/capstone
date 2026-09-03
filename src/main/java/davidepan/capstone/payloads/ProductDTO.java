@@ -1,5 +1,6 @@
 package davidepan.capstone.payloads;
 
+import davidepan.capstone.enums.DestinationArea;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,6 +14,7 @@ public record ProductDTO(
         @NotNull(message = "Il prezzo del prodotto è obbligatorio!")
         BigDecimal price,
         Boolean isAvailable,
+        DestinationArea destinationArea,
         @NotNull(message = "Id della categoria è obbligatoria")
         Long categoryId,
         List<Long> ingredientIds

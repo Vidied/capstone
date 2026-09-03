@@ -1,24 +1,24 @@
 package davidepan.capstone.payloads;
 
 import davidepan.capstone.enums.OrderStatus;
+import davidepan.capstone.enums.OrderType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public record OrderRequestDTO(
 
-        @NotNull(message = "Il numero del tavolo è obbligatorio")
-        @Min(value = 1, message = "Il numero del tavolo deve essere maggiore di 1")
+        @Min(value = 0, message = "Il numero del tavolo non può essere negativo")
         Integer tableNumber,
 
-        @NotNull(message = "Il numero dei coperti è obbligatorio")
-        @Min(value = 1, message = "Il tavolo deve avere almeno 1 coperto")
+        @Min(value = 0, message = "Il numero dei coperti non può essere negativo")
         Integer coverCount,
+
         BigDecimal coverPrice,
         OrderStatus orderStatus,
+        OrderType orderType,
         String notes,
 
         @NotEmpty(message = "La comanda deve avere almeno un prodotto")

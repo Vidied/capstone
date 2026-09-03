@@ -1,6 +1,8 @@
 package davidepan.capstone.entities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import davidepan.capstone.enums.OrderStatus;
+import davidepan.capstone.enums.OrderType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,12 +26,15 @@ public class Order {
     @Setter(AccessLevel.NONE)
     private Long id;
 
-    @Column(nullable = false)
     private Integer tableNumber;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @JsonProperty("orderStatus")
     private OrderStatus orderStatus;
+
+    @Enumerated(EnumType.STRING)
+    private OrderType orderType;
 
     @Column(nullable = false)
     private BigDecimal totalAmount;
@@ -42,15 +47,14 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
-    @Column(nullable = false)
     private Integer coverCount;
 
-    @Column(nullable = false)
     private BigDecimal coverPrice;
 
-    public Order(Integer tableNumber, OrderStatus orderStatus, BigDecimal totalAmount, String notes, LocalDateTime createdAt, List<OrderItem> items, Integer coverCount, BigDecimal coverPrice) {
+    public Order(Integer tableNumber, OrderStatus orderStatus, OrderType orderType, BigDecimal totalAmount, String notes, LocalDateTime createdAt, List<OrderItem> items, Integer coverCount, BigDecimal coverPrice) {
         this.tableNumber = tableNumber;
         this.orderStatus = orderStatus;
+        this.orderType = orderType;
         this.totalAmount = totalAmount;
         this.notes = notes;
         this.createdAt = createdAt;

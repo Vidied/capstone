@@ -1,7 +1,6 @@
 package davidepan.capstone.services;
 
 import davidepan.capstone.entities.Category;
-import davidepan.capstone.entities.Product;
 import davidepan.capstone.exceptions.BadRequestException;
 import davidepan.capstone.exceptions.NotFoundException;
 import davidepan.capstone.payloads.CategoryDTO;
@@ -19,56 +18,64 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @Autowired
-    private ProductService productService;
 
-    public List<Category> findAll(){
-        return categoryRepository.findAllByOrderByDisplayOrderAsc();
-    }
 
-    public Category findById(Long id){
+    public Category findEntityById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(()-> new NotFoundException("Categoria con ID " + id + " non trovata"));
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + id + " non trovata"));
     }
 
-    public Category save(CategoryDTO body){
-        if(body.displayOrder() != null && categoryRepository.existsByDisplayOrder(body.displayOrder())){
+    public CategoryResponseDTO findById(Long id) {
+        Category category = categoryRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + id + " non trovata"));
+        return convertToResponseDTO(category);
+    }
+
+    public List<CategoryResponseDTO> findAll() {
+        return categoryRepository.findAllWithDetails().stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    public CategoryResponseDTO save(CategoryDTO body) {
+        if (body.displayOrder() != null && categoryRepository.existsByDisplayOrder(body.displayOrder())) {
             throw new BadRequestException("Il display order " + body.displayOrder() + " è già in uso");
         }
 
         Category category = new Category(body.name(), body.displayOrder());
-        return categoryRepository.save(category);
+        Category savedCategory = categoryRepository.save(category);
+        return convertToResponseDTO(savedCategory);
     }
 
-    public Category update(Long id, CategoryDTO body){
-        Category found = this.findById(id);
+    public CategoryResponseDTO update(Long id, CategoryDTO body) {
+        Category found = this.findEntityById(id);
 
-        if(body.displayOrder() != null && !body.displayOrder().equals(found.getDisplayOrder())
-                &&categoryRepository.existsByDisplayOrder(body.displayOrder())){
+        if (body.displayOrder() != null && !body.displayOrder().equals(found.getDisplayOrder())
+                && categoryRepository.existsByDisplayOrder(body.displayOrder())) {
             throw new BadRequestException("Il display order " + body.displayOrder() + " è già in uso");
         }
 
         found.setDisplayOrder(body.displayOrder());
         found.setName(body.name());
-        return categoryRepository.save(found);
+        Category updatedCategory = categoryRepository.save(found);
+        return convertToResponseDTO(updatedCategory);
     }
 
-    public void delete(Long id){
-        Category found = this.findById(id);
+    public void delete(Long id) {
+        Category found = this.findEntityById(id);
         categoryRepository.delete(found);
     }
 
-    public CategoryResponseDTO convertToResponseDTO(Category category){
-        List<ProductResponseDTO> productDTOs = (category.getProducts() != null) ?
-                category.getProducts().stream()
-                .map(productService::convertToResponseDto)
-                .toList() : List.of();
-
+    public CategoryResponseDTO convertToResponseDTO(Category category) {
         return new CategoryResponseDTO(
                 category.getId(),
                 category.getName(),
                 category.getDisplayOrder(),
-                productDTOs
+                category.getProducts() != null
+                        ? category.getProducts().stream()
+                        .map(ProductResponseDTO::fromEntity)
+                        .toList()
+                        : List.of()
         );
     }
 }

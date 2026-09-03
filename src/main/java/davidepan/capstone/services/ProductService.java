@@ -3,6 +3,7 @@ package davidepan.capstone.services;
 import davidepan.capstone.entities.Category;
 import davidepan.capstone.entities.Ingredient;
 import davidepan.capstone.entities.Product;
+import davidepan.capstone.enums.DestinationArea;
 import davidepan.capstone.exceptions.NotFoundException;
 import davidepan.capstone.payloads.ProductDTO;
 import davidepan.capstone.payloads.ProductResponseDTO;
@@ -12,8 +13,9 @@ import davidepan.capstone.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProductService {
@@ -27,64 +29,82 @@ public class ProductService {
     @Autowired
     private IngredientRepository ingredientRepository;
 
-    public List<Product> findAll(){
-        return productRepository.findAll();
-    }
-
-    public Product findById(Long id){
+    // Helper interno per update e delete
+    public Product findEntityById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(()-> new NotFoundException("Prodotto con ID " + id + " non trovato"));
-
+                .orElseThrow(() -> new NotFoundException("Prodotto con ID " + id + " non trovato"));
     }
 
-    public List<Product> findByCategoryId(Long categoryId){
-        return productRepository.findByCategoryId(categoryId);
+    // Lettura per ID singola risposta DTO
+    public ProductResponseDTO findById(Long id) {
+        Product product = productRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new NotFoundException("Prodotto con ID " + id + " non trovato"));
+        return ProductResponseDTO.fromEntity(product);
     }
 
-    public List<Product> findAvailable(){
-        return productRepository.findByIsAvailableTrue();
+    public List<ProductResponseDTO> findAll() {
+        return productRepository.findAllWithDetails().stream()
+                .map(ProductResponseDTO::fromEntity)
+                .toList();
     }
 
-    public Product save(ProductDTO body){
+    public List<ProductResponseDTO> findByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryIdWithDetails(categoryId).stream()
+                .map(ProductResponseDTO::fromEntity)
+                .toList();
+    }
+
+    public List<ProductResponseDTO> findAvailable() {
+        return productRepository.findAvailableWithDetails().stream()
+                .map(ProductResponseDTO::fromEntity)
+                .toList();
+    }
+
+    public ProductResponseDTO save(ProductDTO body) {
         Category category = categoryRepository.findById(body.categoryId())
-                .orElseThrow(()-> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
 
-        List<Ingredient> ingredients = new ArrayList<>();
-        if (body.ingredientIds() != null && !body.ingredientIds().isEmpty()){
-            ingredients = ingredientRepository.findAllById(body.ingredientIds());
-            if (ingredients.size() != body.ingredientIds().size()){
+        Set<Ingredient> ingredients = new HashSet<>();
+        if (body.ingredientIds() != null && !body.ingredientIds().isEmpty()) {
+            List<Ingredient> fetchedIngredients = ingredientRepository.findAllById(body.ingredientIds());
+            if (fetchedIngredients.size() != body.ingredientIds().size()) {
                 throw new NotFoundException("Uno o più ingredienti non sono stati trovati");
             }
+            ingredients.addAll(fetchedIngredients);
         }
 
         boolean hasUnavailableIngredient = ingredients.stream()
                 .anyMatch(ingredient -> Boolean.FALSE.equals(ingredient.getIsAvailable()));
 
         boolean isAvailable = !hasUnavailableIngredient && (body.isAvailable() != null ? body.isAvailable() : true);
+        DestinationArea destination = body.destinationArea() != null ? body.destinationArea() : DestinationArea.SALA;
 
         Product product = new Product(
                 body.name(),
                 body.description(),
                 body.price(),
                 isAvailable,
+                destination,
                 category,
                 ingredients
         );
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        return ProductResponseDTO.fromEntity(savedProduct);
     }
 
-    public Product update(Long id, ProductDTO body){
-        Product found = this.findById(id);
+    public ProductResponseDTO update(Long id, ProductDTO body) {
+        Product found = this.findEntityById(id);
         Category category = categoryRepository.findById(body.categoryId())
-                .orElseThrow(()-> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + body.categoryId() + " non trovata"));
 
-        List<Ingredient> ingredients = new ArrayList<>();
-        if (body.ingredientIds() != null && !body.ingredientIds().isEmpty()){
-            ingredients = ingredientRepository.findAllById(body.ingredientIds());
-            if (ingredients.size() != body.ingredientIds().size()){
+        Set<Ingredient> ingredients = new HashSet<>();
+        if (body.ingredientIds() != null && !body.ingredientIds().isEmpty()) {
+            List<Ingredient> fetchedIngredients = ingredientRepository.findAllById(body.ingredientIds());
+            if (fetchedIngredients.size() != body.ingredientIds().size()) {
                 throw new NotFoundException("Uno o più ingredienti non sono stati trovati");
             }
+            ingredients.addAll(fetchedIngredients);
         }
 
         boolean hasUnavailableIngredient = ingredients.stream()
@@ -94,32 +114,25 @@ public class ProductService {
         found.setDescription(body.description());
         found.setPrice(body.price());
 
-        if(hasUnavailableIngredient){
+        if (body.destinationArea() != null) {
+            found.setDestinationArea(body.destinationArea());
+        }
+
+        if (hasUnavailableIngredient) {
             found.setIsAvailable(false);
-        }else if(body.isAvailable() != null){
+        } else if (body.isAvailable() != null) {
             found.setIsAvailable(body.isAvailable());
-        };
+        }
+
         found.setCategory(category);
-        found.getIngredients().clear();
-        found.getIngredients().addAll(ingredients);
+        found.setIngredients(ingredients);
 
-        return productRepository.save(found);
+        Product updatedProduct = productRepository.save(found);
+        return ProductResponseDTO.fromEntity(updatedProduct);
     }
 
-    public void delete(Long id){
-        Product found = this.findById(id);
+    public void delete(Long id) {
+        Product found = this.findEntityById(id);
         productRepository.delete(found);
-    }
-
-    public ProductResponseDTO convertToResponseDto(Product product){
-        return new ProductResponseDTO(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getIsAvailable(),
-                product.getCategory() != null ? product.getCategory().getName() : null,
-                product.getIngredients() != null ? product.getIngredients().stream().map(Ingredient::getName).toList() : List.of()
-        );
     }
 }

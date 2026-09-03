@@ -1,6 +1,5 @@
 package davidepan.capstone.controllers;
 
-import davidepan.capstone.entities.Product;
 import davidepan.capstone.payloads.ProductDTO;
 import davidepan.capstone.payloads.ProductResponseDTO;
 import davidepan.capstone.services.ProductService;
@@ -20,43 +19,38 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ProductResponseDTO findById(@PathVariable Long id) {
-        Product product = productService.findById(id);
-        return productService.convertToResponseDto(product);
+        return productService.findById(id);
     }
 
     @GetMapping
     public List<ProductResponseDTO> getAllProducts() {
-        return productService.findAll()
-                .stream()
-                .map(productService::convertToResponseDto)
-                .toList();
+        return productService.findAll();
     }
 
     @GetMapping("/available")
-    public List<ProductResponseDTO> getAvailable(){
-        return productService.findAvailable()
-                .stream()
-                .map(productService::convertToResponseDto)
-                .toList();
+    public List<ProductResponseDTO> getAvailable() {
+        return productService.findAvailable();
     }
 
+    @GetMapping("/category/{categoryId}")
+    public List<ProductResponseDTO> getByCategoryId(@PathVariable Long categoryId) {
+        return productService.findByCategoryId(categoryId);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductResponseDTO create(@RequestBody @Validated ProductDTO body){
-        Product product = productService.save(body);
-        return productService.convertToResponseDto(product);
+    public ProductResponseDTO create(@RequestBody @Validated ProductDTO body) {
+        return productService.save(body);
     }
 
     @PutMapping("/{id}")
-    public ProductResponseDTO update(@PathVariable Long id, @RequestBody @Validated ProductDTO body){
-        Product updatedProduct = productService.update(id, body);
-        return productService.convertToResponseDto(updatedProduct);
+    public ProductResponseDTO update(@PathVariable Long id, @RequestBody @Validated ProductDTO body) {
+        return productService.update(id, body);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id){
+    public void delete(@PathVariable Long id) {
         productService.delete(id);
     }
 }
