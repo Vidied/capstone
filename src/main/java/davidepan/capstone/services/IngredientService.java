@@ -7,6 +7,7 @@ import davidepan.capstone.payloads.IngredientDTO;
 import davidepan.capstone.payloads.IngredientUpdateDTO;
 import davidepan.capstone.repositories.IngredientRepository;
 import davidepan.capstone.repositories.ProductRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +40,7 @@ public class IngredientService {
 
         return ingredientRepository.save(ingredient);
     }
-
+    @Transactional
     public Ingredient update(Long id, IngredientUpdateDTO body){
         Ingredient found = this.findById(id);
 

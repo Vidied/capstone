@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "categories")
@@ -27,9 +27,11 @@ public class Category {
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 1;
 
+    @Setter
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("name ASC")
     @JsonIgnore
-    private List<Product> products = new ArrayList<>();
+    private Set<Product> products = new HashSet<>();
 
     public Category(String name, Integer displayOrder) {
         this.name = name;

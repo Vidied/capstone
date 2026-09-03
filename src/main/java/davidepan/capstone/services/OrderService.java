@@ -6,9 +6,7 @@ import davidepan.capstone.entities.Product;
 import davidepan.capstone.enums.OrderStatus;
 import davidepan.capstone.exceptions.BadRequestException;
 import davidepan.capstone.exceptions.NotFoundException;
-import davidepan.capstone.payloads.OrderItemRequestDTO;
-import davidepan.capstone.payloads.OrderRequestDTO;
-import davidepan.capstone.payloads.OrderStatusUpdateDTO;
+import davidepan.capstone.payloads.*;
 import davidepan.capstone.repositories.OrderRepository;
 import davidepan.capstone.repositories.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -33,24 +31,34 @@ public class OrderService {
     @Value("${restaurant.cover-price}")
     private BigDecimal defaultCoverPrice;
 
-    public List<Order> findAll(){
-        return orderRepository.findAll();
+    public Order findEntityById(Long id) {
+        return orderRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new NotFoundException("Ordine con ID " + id + " non trovato"));
     }
 
-    public Order findById(Long id){
-        return orderRepository.findById(id).orElseThrow(() -> new NotFoundException("Comanda con ID " + id + " non è stata trovata"));
+    public List<OrderResponseDTO> findAll() {
+        return orderRepository.findAllWithDetails().stream()
+                .map(this::convertToResponseDto)
+                .toList();
     }
 
-    public List<Order> findByStatus(OrderStatus status){
-        return orderRepository.findByOrderStatus(status);
+    public OrderResponseDTO findById(Long id) {
+        Order order = this.findEntityById(id);
+        return convertToResponseDto(order);
+    }
+
+    public List<OrderResponseDTO> findByStatus(OrderStatus status) {
+        return orderRepository.findByOrderStatusWithDetails(status).stream()
+                .map(this::convertToResponseDto)
+                .toList();
     }
 
     @Transactional
-    public Order save(OrderRequestDTO body){
+    public OrderResponseDTO save(OrderRequestDTO body) {
         Order newOrder = new Order();
 
         newOrder.setTableNumber(body.tableNumber());
-        newOrder.setCoverCount(body.coverCount());
+        newOrder.setOrderType(body.orderType());
         newOrder.setCoverPrice(defaultCoverPrice);
         newOrder.setNotes(body.notes());
         newOrder.setOrderStatus(OrderStatus.PENDING);
@@ -58,63 +66,126 @@ public class OrderService {
 
         this.processOrderItemsAndTotal(newOrder, body.items(), body.coverCount());
 
-        return orderRepository.save(newOrder);
+        Order savedOrder = orderRepository.save(newOrder);
+        return convertToResponseDto(savedOrder);
     }
 
     @Transactional
-    public Order update(OrderRequestDTO body, Long id){
-        Order found = this.findById(id);
+    public OrderResponseDTO update(OrderRequestDTO body, Long id) {
+        Order found = this.findEntityById(id);
 
         found.setTableNumber(body.tableNumber());
-        found.setCoverCount(body.coverCount());
-        found.setOrderStatus(body.orderStatus());
+        found.setOrderType(body.orderType());
         found.setNotes(body.notes());
 
         found.getItems().clear();
 
         this.processOrderItemsAndTotal(found, body.items(), body.coverCount());
 
-        return orderRepository.save(found);
+        Order updatedOrder = orderRepository.save(found);
+        return convertToResponseDto(updatedOrder);
     }
 
-    public Order updateStatus(Long id, OrderStatusUpdateDTO body){
-        Order found = this.findById(id);
-        found.setOrderStatus(body.orderStatus());
-        return orderRepository.save(found);
-    }
+    // Aggiunta di nuovi prodotti a un ordine esistente
+    @Transactional
+    public OrderResponseDTO appendItems(Long orderId, List<OrderItemRequestDTO> newItemsDTO) {
+        Order order = this.findEntityById(orderId);
 
-    public void delete(Long id){
-        Order found = this.findById(id);
-        orderRepository.delete(found);
-    }
+        if (order.getOrderStatus() == OrderStatus.COMPLETED || order.getOrderStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Impossibile modificare un ordine già chiuso o annullato.");
+        }
 
-    //Metodo helper per evitare di duplicare il codice massiccio tra save ed update
-    private void processOrderItemsAndTotal(Order order, List<OrderItemRequestDTO> itemDTOs, Integer coverCount){
-        List<OrderItem> items = new ArrayList<>();
-        BigDecimal productsTotal = BigDecimal.ZERO;
+        BigDecimal addedProductsTotal = BigDecimal.ZERO;
 
-        for(OrderItemRequestDTO itemDTO : itemDTOs){
+        for (OrderItemRequestDTO itemDTO : newItemsDTO) {
             Product product = productRepository.findById(itemDTO.productId())
-                    .orElseThrow(()-> new NotFoundException("Prodotto con ID " + itemDTO.productId() + " non è stato trovato"));
+                    .orElseThrow(() -> new NotFoundException("Prodotto non trovato con ID: " + itemDTO.productId()));
 
-            if(Boolean.FALSE.equals(product.getIsAvailable())){
-                throw new BadRequestException("Il prodotto " + product.getName() + " non è attualmente disponibile");
+            if (Boolean.FALSE.equals(product.getIsAvailable())) {
+                throw new BadRequestException("Il prodotto " + product.getName() + " non è disponibile.");
             }
 
             BigDecimal unitPrice = product.getPrice();
-
             OrderItem orderItem = new OrderItem(order, product, itemDTO.quantity(), unitPrice, itemDTO.notes());
-            items.add(orderItem);
+
+            order.getItems().add(orderItem);
 
             BigDecimal itemSubtotal = unitPrice.multiply(BigDecimal.valueOf(itemDTO.quantity()));
-            productsTotal = productsTotal.add(itemSubtotal);
+            addedProductsTotal = addedProductsTotal.add(itemSubtotal);
+        }
+
+        order.setTotalAmount(order.getTotalAmount().add(addedProductsTotal));
+
+        Order updatedOrder = orderRepository.save(order);
+        return convertToResponseDto(updatedOrder);
+    }
+
+    public OrderResponseDTO updateStatus(Long id, OrderStatusUpdateDTO body) {
+        Order found = this.findEntityById(id);
+        found.setOrderStatus(body.orderStatus());
+        Order updatedOrder = orderRepository.save(found);
+        return convertToResponseDto(updatedOrder);
+    }
+
+    public void delete(Long id) {
+        Order found = this.findEntityById(id);
+        orderRepository.delete(found);
+    }
+
+    public OrderResponseDTO convertToResponseDto(Order order) {
+        List<OrderItemResponseDTO> items = order.getItems() != null
+                ? order.getItems().stream()
+                .map(item -> new OrderItemResponseDTO(
+                        item.getId(),
+                        item.getProduct() != null ? item.getProduct().getName() : null,
+                        item.getQuantity(),
+                        item.getUnitPrice(),
+                        item.getNotes(),
+                        item.getProduct() != null ? item.getProduct().getDestinationArea() : null
+                )).toList()
+                : List.of();
+
+        return new OrderResponseDTO(
+                order.getId(),
+                order.getTableNumber(),
+                order.getCoverCount(),
+                order.getOrderType(),
+                order.getCreatedAt(),
+                order.getOrderStatus(),
+                order.getNotes(),
+                order.getTotalAmount(),
+                items
+        );
+    }
+
+    private void processOrderItemsAndTotal(Order order, List<OrderItemRequestDTO> itemDTOs, Integer coverCount) {
+        List<OrderItem> items = new ArrayList<>();
+        BigDecimal productsTotal = BigDecimal.ZERO;
+
+        if (itemDTOs != null) {
+            for (OrderItemRequestDTO itemDTO : itemDTOs) {
+                Product product = productRepository.findById(itemDTO.productId())
+                        .orElseThrow(() -> new NotFoundException("Prodotto con ID " + itemDTO.productId() + " non trovato"));
+
+                if (Boolean.FALSE.equals(product.getIsAvailable())) {
+                    throw new BadRequestException("Il prodotto " + product.getName() + " non è attualmente disponibile");
+                }
+
+                BigDecimal unitPrice = product.getPrice();
+                OrderItem orderItem = new OrderItem(order, product, itemDTO.quantity(), unitPrice, itemDTO.notes());
+                items.add(orderItem);
+
+                BigDecimal itemSubtotal = unitPrice.multiply(BigDecimal.valueOf(itemDTO.quantity()));
+                productsTotal = productsTotal.add(itemSubtotal);
+            }
         }
 
         order.getItems().addAll(items);
 
-        BigDecimal totalCoverAmount = defaultCoverPrice.multiply(BigDecimal.valueOf(coverCount));
+        int actualCoverCount = (coverCount != null && coverCount > 0) ? coverCount : 0;
+        BigDecimal totalCoverAmount = defaultCoverPrice.multiply(BigDecimal.valueOf(actualCoverCount));
 
+        order.setCoverCount(actualCoverCount);
         order.setTotalAmount(productsTotal.add(totalCoverAmount));
-
     }
 }

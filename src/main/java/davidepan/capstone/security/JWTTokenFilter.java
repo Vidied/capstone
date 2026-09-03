@@ -69,11 +69,11 @@ public class JWTTokenFilter extends OncePerRequestFilter {
 
         return new AntPathMatcher().match("/auth/**", path) || (method.equalsIgnoreCase("GET") && (
                 new AntPathMatcher().match("/products/**", path) ||
-                new AntPathMatcher().match("/categories/**", path)||
-                new AntPathMatcher().match("/ingredients/**", path) ||
-                new AntPathMatcher().match("/ingredients", path)||
+                new AntPathMatcher().match("/categoriesbb/**", path)||
                 new AntPathMatcher().match("/products", path) ||
-                new AntPathMatcher().match("/categories", path)
+                new AntPathMatcher().match("/categories", path)||
+                new AntPathMatcher().match("/ingredients", path) ||
+                new AntPathMatcher().match("/ingredients/**", path)
                 ));
     }
 

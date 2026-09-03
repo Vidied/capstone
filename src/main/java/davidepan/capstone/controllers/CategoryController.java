@@ -1,11 +1,14 @@
 package davidepan.capstone.controllers;
 
-import davidepan.capstone.entities.Category;
+import davidepan.capstone.exceptions.BadRequestException;
 import davidepan.capstone.payloads.CategoryDTO;
 import davidepan.capstone.payloads.CategoryResponseDTO;
 import davidepan.capstone.services.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,37 +22,41 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public List<CategoryResponseDTO> getAll(){
-        return categoryService.findAll()
-                .stream()
-                .map(categoryService::convertToResponseDTO)
-                .toList();
+    public List<CategoryResponseDTO> getAllCategories() {
+        return categoryService.findAll();
     }
 
     @GetMapping("/{id}")
-    public CategoryResponseDTO getById(@PathVariable Long id){
-        Category category = categoryService.findById(id);
-        return categoryService.convertToResponseDTO(category);
+    public CategoryResponseDTO getCategoryById(@PathVariable Long id) {
+        return categoryService.findById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoryResponseDTO create(@RequestBody @Validated CategoryDTO body){
-        Category category = categoryService.save(body);
-
-        return categoryService.convertToResponseDTO(category);
+    public CategoryResponseDTO createCategory(@RequestBody @Validated CategoryDTO body, BindingResult validation) {
+        if (validation.hasErrors()) {
+            List<String> errors = validation.getAllErrors().stream()
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                    .toList();
+            throw new BadRequestException(errors.toString());
+        }
+        return categoryService.save(body);
     }
 
     @PutMapping("/{id}")
-    public CategoryResponseDTO update(@PathVariable Long id, @RequestBody @Validated CategoryDTO body){
-        Category category = categoryService.update(id, body);
-
-        return categoryService.convertToResponseDTO(category);
+    public CategoryResponseDTO updateCategory(@PathVariable Long id, @RequestBody @Validated CategoryDTO body, BindingResult validation) {
+        if (validation.hasErrors()) {
+            List<String> errors = validation.getAllErrors().stream()
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                    .toList();
+            throw new BadRequestException(errors.toString());
+        }
+        return categoryService.update(id, body);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id){
+    public void deleteCategory(@PathVariable Long id) {
         categoryService.delete(id);
     }
 }

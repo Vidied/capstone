@@ -1,18 +1,18 @@
 package davidepan.capstone.services;
 
 import davidepan.capstone.entities.Category;
-import davidepan.capstone.entities.Product;
 import davidepan.capstone.exceptions.BadRequestException;
 import davidepan.capstone.exceptions.NotFoundException;
 import davidepan.capstone.payloads.CategoryDTO;
 import davidepan.capstone.payloads.CategoryResponseDTO;
 import davidepan.capstone.payloads.ProductResponseDTO;
 import davidepan.capstone.repositories.CategoryRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CategoryService {
@@ -20,82 +20,96 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @Autowired
-    private ProductService productService;
-
-    public List<Category> findAll(){
-        return categoryRepository.findAllByOrderByDisplayOrderAsc();
-    }
-
-    public Category findById(Long id){
+    public Category findEntityById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(()-> new NotFoundException("Categoria con ID " + id + " non trovata"));
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + id + " non trovata"));
+    }
+
+    public CategoryResponseDTO findById(Long id) {
+        Category category = categoryRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new NotFoundException("Categoria con ID " + id + " non trovata"));
+        return convertToResponseDTO(category);
+    }
+
+    public List<CategoryResponseDTO> findAll() {
+        return categoryRepository.findAllWithDetails().stream()
+                .map(this::convertToResponseDTO)
+                .toList();
     }
 
     @Transactional
-    public Category save(CategoryDTO body){
-        Integer targetOrder = body.displayOrder();
+    public CategoryResponseDTO save(CategoryDTO body) {
+        Integer assignedOrder = body.displayOrder();
 
-        if (targetOrder == null) {
-            targetOrder = categoryRepository.findAllByOrderByDisplayOrderAsc()
-                    .stream()
-                    .mapToInt(Category::getDisplayOrder)
-                    .max()
-                    .orElse(0) + 1;
+        if (assignedOrder == null) {
+            assignedOrder = categoryRepository.findMaxDisplayOrder()
+                    .map(max -> max + 1)
+                    .orElse(1);
+        } else {
+            if (categoryRepository.existsByDisplayOrder(assignedOrder)) {
+                throw new BadRequestException("Il display order " + assignedOrder + " è già in uso");
+            }
         }
 
-        Category category = new Category(body.name(), targetOrder);
-        return categoryRepository.save(category);
+        Category category = new Category(body.name(), assignedOrder);
+        Category savedCategory = categoryRepository.save(category);
+        return convertToResponseDTO(savedCategory);
     }
 
     @Transactional
-    public Category update(Long id, CategoryDTO body) {
-        Category found = this.findById(id);
+    public CategoryResponseDTO update(Long id, CategoryDTO body) {
+        Category categoryToUpdate = this.findEntityById(id);
 
-        if (body.displayOrder() != null && !body.displayOrder().equals(found.getDisplayOrder())) {
-            Integer oldOrder = found.getDisplayOrder();
-            Integer newOrder = body.displayOrder();
+        if (body.name() != null) {
+            categoryToUpdate.setName(body.name());
+        }
 
-            categoryRepository.findByDisplayOrder(newOrder).ifPresent(otherCategory -> {
-                otherCategory.setDisplayOrder(oldOrder);
+        Integer newOrder = body.displayOrder();
+        Integer currentOrder = categoryToUpdate.getDisplayOrder();
+
+        if (newOrder != null && !newOrder.equals(currentOrder)) {
+            Optional<Category> existingCategoryWithNewOrder = categoryRepository.findByDisplayOrder(newOrder);
+
+            if (existingCategoryWithNewOrder.isPresent()) {
+                Category otherCategory = existingCategoryWithNewOrder.get();
+                otherCategory.setDisplayOrder(currentOrder);
                 categoryRepository.save(otherCategory);
-            });
-            found.setDisplayOrder(newOrder);
+            }
+
+            categoryToUpdate.setDisplayOrder(newOrder);
         }
 
-        found.setName(body.name());
-        return categoryRepository.save(found);
+        Category updatedCategory = categoryRepository.save(categoryToUpdate);
+        return convertToResponseDTO(updatedCategory);
     }
 
     @Transactional
     public void delete(Long id) {
-        Category found = this.findById(id);
-        Integer deletedOrder = found.getDisplayOrder();
+        Category categoryToDelete = this.findEntityById(id);
+        Integer deletedOrder = categoryToDelete.getDisplayOrder();
 
-        categoryRepository.delete(found);
+        categoryRepository.delete(categoryToDelete);
+        if (deletedOrder != null) {
+            List<Category> categoriesToShift = categoryRepository
+                    .findByDisplayOrderGreaterThanOrderByDisplayOrderAsc(deletedOrder);
 
-        List<Category> categoriesToShift = categoryRepository.findAllByOrderByDisplayOrderAsc()
-                .stream()
-                .filter(c -> c.getDisplayOrder() > deletedOrder)
-                .toList();
-
-        for (Category cat : categoriesToShift) {
-            cat.setDisplayOrder(cat.getDisplayOrder() - 1);
-            categoryRepository.save(cat);
+            for (Category category : categoriesToShift) {
+                category.setDisplayOrder(category.getDisplayOrder() - 1);
+            }
+            categoryRepository.saveAll(categoriesToShift);
         }
     }
 
-    public CategoryResponseDTO convertToResponseDTO(Category category){
-        List<ProductResponseDTO> productDTOs = (category.getProducts() != null) ?
-                category.getProducts().stream()
-                .map(productService::convertToResponseDto)
-                .toList() : List.of();
-
+    public CategoryResponseDTO convertToResponseDTO(Category category) {
         return new CategoryResponseDTO(
                 category.getId(),
                 category.getName(),
                 category.getDisplayOrder(),
-                productDTOs
+                category.getProducts() != null
+                        ? category.getProducts().stream()
+                        .map(ProductResponseDTO::fromEntity)
+                        .toList()
+                        : List.of()
         );
     }
 }
