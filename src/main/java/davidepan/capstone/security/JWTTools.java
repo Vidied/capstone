@@ -1,5 +1,6 @@
 package davidepan.capstone.security;
 
+import davidepan.capstone.entities.Role;
 import davidepan.capstone.entities.User;
 import davidepan.capstone.exceptions.UnauthorizedException;
 import io.jsonwebtoken.Jwts;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class JWTTools {
@@ -16,10 +18,19 @@ public class JWTTools {
     private String secret;
 
     public String createToken(User user){
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
+                .claim("id", user.getId())
+                .claim("email", user.getEmail())
+                .claim("name", user.getName())
+                .claim("surname", user.getSurname())
+                .claim("roles", roles)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7))
+                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7))
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()))
                 .compact();
     }
