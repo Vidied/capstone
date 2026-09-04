@@ -127,6 +127,23 @@ public class OrderService {
         return convertToResponseDto(updatedOrder);
     }
 
+    @Transactional
+    public void deleteAllCompletedOrders() {
+        List<Order> completedOrders = orderRepository.findByOrderStatusWithDetails(OrderStatus.COMPLETED);
+        orderRepository.deleteAll(completedOrders);
+    }
+
+    @Transactional
+    public void deleteSelectedCompletedOrders(List<Long> ids) {
+        if (ids != null && !ids.isEmpty()) {
+            List<Order> ordersToDelete = orderRepository.findAllById(ids).stream()
+                    .filter(o -> o.getOrderStatus() == OrderStatus.COMPLETED)
+                    .toList();
+            orderRepository.deleteAll(ordersToDelete);
+        }
+    }
+
+    @Transactional
     public void delete(Long id) {
         Order found = this.findEntityById(id);
         orderRepository.delete(found);

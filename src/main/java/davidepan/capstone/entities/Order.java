@@ -30,7 +30,7 @@ public class Order {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @JsonProperty("orderStatus")
+    @JsonProperty("order_status")
     private OrderStatus orderStatus;
 
     @Enumerated(EnumType.STRING)

@@ -28,7 +28,7 @@ public class OrderController {
         return orderService.findAll();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public OrderResponseDTO getOrderById(@PathVariable Long id) {
         return orderService.findById(id);
     }
@@ -39,24 +39,36 @@ public class OrderController {
         return orderService.save(body);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     public OrderResponseDTO updateOrder(@RequestBody @Validated OrderRequestDTO body, @PathVariable Long id) {
         return orderService.update(body, id);
     }
 
-    @PostMapping("/{id}/items")
+    @PostMapping("/{id:\\d+}/items")
     public OrderResponseDTO appendItemsToOrder(@PathVariable Long id, @RequestBody @Validated List<OrderItemRequestDTO> items) {
         return orderService.appendItems(id, items);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id:\\d+}/status")
     public OrderResponseDTO updateOrderStatus(@PathVariable Long id, @RequestBody @Validated OrderStatusUpdateDTO body) {
         return orderService.updateStatus(id, body);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteOrder(@PathVariable Long id) {
         orderService.delete(id);
+    }
+
+    @DeleteMapping("/completed/all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAllCompletedOrders() {
+        orderService.deleteAllCompletedOrders();
+    }
+
+    @DeleteMapping("/completed/batch")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSelectedCompletedOrders(@RequestBody List<Long> ids) {
+        orderService.deleteSelectedCompletedOrders(ids);
     }
 }
